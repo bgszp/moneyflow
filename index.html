@@ -6,97 +6,160 @@
     <title>Scanner & Penyalin Nomor</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; }
-        video { width: 100%; max-width: 400px; border: 3px solid #333; border-radius: 8px; margin-bottom: 15px; }
-        button { padding: 12px 20px; font-size: 16px; margin: 5px; cursor: pointer; border: none; border-radius: 5px; background-color: #007bff; color: white; font-weight: bold; }
-        button:hover { background-color: #0056b3; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        #hasil-scan { width: 100%; max-width: 380px; height: 50px; font-size: 18px; margin: 15px 0; padding: 10px; text-align: center; }
-        #status { color: #d9534f; font-weight: bold; margin-bottom: 10px; }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 15px; background-color: #f4f4f9; margin: 0; }
+        
+        /* Area Kamera dan Kotak Target */
+        .kamera-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto 15px auto;
+            border: 3px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #000;
+        }
+        video { width: 100%; display: block; }
+        
+        /* Kotak Fokus Transparan */
+        .kotak-target {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%; /* Lebar kotak target */
+            height: 25%; /* Tinggi kotak target */
+            border: 2px solid #00ff00;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); /* Efek gelap di luar kotak */
+            pointer-events: none;
+        }
+
+        button { padding: 12px 15px; font-size: 15px; margin: 5px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
+        .btn-biru { background-color: #007bff; color: white; }
+        .btn-biru:hover { background-color: #0056b3; }
+        .btn-kuning { background-color: #f0ad4e; color: white; }
+        .btn-kuning:hover { background-color: #ec971f; }
+        button:disabled { background-color: #ccc !important; cursor: not-allowed; color: #666; }
+        
+        #hasil-scan { width: 90%; max-width: 380px; height: 40px; font-size: 20px; font-weight: bold; margin: 15px 0; padding: 10px; text-align: center; letter-spacing: 2px; }
+        #status { color: #d9534f; font-weight: bold; margin-bottom: 10px; min-height: 20px; }
     </style>
 </head>
 <body>
 
-    <h2>Scanner Nomor Kamera 📷</h2>
-    <p>Arahkan kamera ke nomor, lalu tekan "Scan Nomor"</p>
+    <h2>Scanner Nomor 📷</h2>
+    <p>Paskan nomor di dalam kotak hijau, lalu Scan!</p>
 
-    <video id="kamera" autoplay playsinline></video>
-    <br>
-    <div id="status">Kamera siap.</div>
+    <div class="kamera-container">
+        <video id="kamera" autoplay playsinline></video>
+        <div class="kotak-target"></div>
+    </div>
+    
+    <div id="status">Kamera sedang disiapkan...</div>
     <canvas id="canvas" style="display:none;"></canvas>
     
-    <button id="btn-scan">🔍 Scan Nomor</button><br>
-    <input type="text" id="hasil-scan" placeholder="Hasil nomor akan muncul di sini..." readonly><br>
-    <button id="btn-copy" disabled>📋 Salin Nomor</button>
+    <div>
+        <button id="btn-scan" class="btn-biru">📸 Ambil & Scan</button>
+        <button id="btn-ulangi" class="btn-kuning" style="display:none;">🔄 Ulangi Kamera</button>
+    </div>
+    
+    <input type="text" id="hasil-scan" placeholder="..." readonly>
+    <br>
+    <button id="btn-copy" class="btn-biru" disabled>📋 Salin Nomor</button>
 
     <script>
         const video = document.getElementById('kamera');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const btnScan = document.getElementById('btn-scan');
+        const btnUlangi = document.getElementById('btn-ulangi');
         const btnCopy = document.getElementById('btn-copy');
         const hasilScan = document.getElementById('hasil-scan');
         const statusTeks = document.getElementById('status');
 
-        // Mengakses kamera (mengatur resolusi ideal agar tidak terlalu berat)
+        // Mengakses kamera dengan paksaan auto-focus jika didukung browser
         navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } 
+            video: { 
+                facingMode: 'environment', 
+                width: { ideal: 1280 }, 
+                height: { ideal: 720 },
+                advanced: [{ focusMode: "continuous" }]
+            } 
         }).then(stream => {
             video.srcObject = stream;
+            video.onloadedmetadata = () => { statusTeks.innerText = "Kamera siap."; statusTeks.style.color = "#333"; };
         }).catch(err => {
             statusTeks.innerText = "Error: Kamera tidak dapat diakses.";
         });
 
-        // Proses Scanning
+        // Tombol Scan (Ambil Foto & Proses)
         btnScan.addEventListener('click', () => {
-            statusTeks.innerText = "Sedang memindai gambar... Mohon tunggu.";
-            statusTeks.style.color = "#f0ad4e";
-            btnScan.disabled = true;
+            // 1. Pause video agar menjadi foto (freeze frame)
+            video.pause();
+            
+            // 2. Ubah tampilan tombol
+            btnScan.style.display = "none";
+            btnUlangi.style.display = "inline-block";
             btnCopy.disabled = true;
             hasilScan.value = "";
+            statusTeks.innerText = "Menganalisa gambar... Mohon tunggu.";
+            statusTeks.style.color = "#f0ad4e";
 
-            // PERBAIKAN: Perkecil resolusi gambar agar HP tidak macet (Maksimal lebar 600px)
-            const rasio = video.videoWidth / video.videoHeight;
-            canvas.width = 600; 
-            canvas.height = 600 / rasio;
+            // 3. Potong (Crop) gambar hanya pada area KOTAK HIJAU
+            const vWidth = video.videoWidth;
+            const vHeight = video.videoHeight;
             
-            // Gambar frame video ke canvas dengan ukuran yang sudah diperkecil
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // Ubah ke format JPEG agar lebih ringan dari PNG
-            const imageData = canvas.toDataURL('image/jpeg', 0.8); 
+            // Ukuran kotak hijau di layar adalah 80% lebar dan 25% tinggi
+            const cropW = vWidth * 0.8;
+            const cropH = vHeight * 0.25;
+            const cropX = (vWidth - cropW) / 2;
+            const cropY = (vHeight - cropH) / 2;
 
-            // Proses Tesseract
-            Tesseract.recognize(
-                imageData,
-                'eng',
-                { logger: m => console.log(m) }
-            ).then(({ data: { text } }) => {
-                // Ambil hanya angka
+            canvas.width = cropW;
+            canvas.height = cropH;
+            
+            // Gambar hanya area yang dipotong ke kanvas
+            ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+            
+            const imageData = canvas.toDataURL('image/jpeg', 0.9);
+
+            // 4. Proses dengan Tesseract
+            Tesseract.recognize(imageData, 'eng')
+            .then(({ data: { text } }) => {
                 const hanyaAngka = text.replace(/[^0-9]/g, '');
 
                 if (hanyaAngka) {
                     hasilScan.value = hanyaAngka;
-                    statusTeks.innerText = "Berhasil menemukan nomor!";
+                    statusTeks.innerText = "Nomor berhasil ditemukan!";
                     statusTeks.style.color = "#5cb85c";
                     btnCopy.disabled = false;
                 } else {
-                    statusTeks.innerText = "Tidak ada nomor yang jelas. Coba lebih dekat atau fokus.";
+                    statusTeks.innerText = "Tidak ada nomor di kotak hijau. Silakan ulangi.";
                     statusTeks.style.color = "#d9534f";
                 }
-                btnScan.disabled = false;
             }).catch(err => {
-                statusTeks.innerText = "Gagal memindai. Coba muat ulang halaman.";
-                btnScan.disabled = false;
+                statusTeks.innerText = "Gagal memindai.";
+                statusTeks.style.color = "#d9534f";
             });
         });
 
-        // Proses Salin (Copy)
+        // Tombol Ulangi (Nyalakan Video Lagi)
+        btnUlangi.addEventListener('click', () => {
+            video.play(); // Lanjutkan video
+            btnScan.style.display = "inline-block";
+            btnUlangi.style.display = "none";
+            btnCopy.disabled = true;
+            hasilScan.value = "";
+            statusTeks.innerText = "Kamera siap.";
+            statusTeks.style.color = "#333";
+        });
+
+        // Tombol Salin
         btnCopy.addEventListener('click', () => {
             hasilScan.select();
             hasilScan.setSelectionRange(0, 99999);
             navigator.clipboard.writeText(hasilScan.value).then(() => {
-                alert("Nomor berhasil disalin: " + hasilScan.value);
+                alert("Berhasil disalin: " + hasilScan.value);
             });
         });
     </script>
