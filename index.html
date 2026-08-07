@@ -4,49 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scanner & Penyalin Nomor</title>
-    <!-- Memuat Tesseract.js untuk fitur pembacaan teks -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
-            background-color: #f4f4f9;
-        }
-        video {
-            width: 100%;
-            max-width: 400px;
-            border: 3px solid #333;
-            border-radius: 8px;
-            margin-bottom: 15px;
-        }
-        button {
-            padding: 12px 20px;
-            font-size: 16px;
-            margin: 5px;
-            cursor: pointer;
-            border: none;
-            border-radius: 5px;
-            background-color: #007bff;
-            color: white;
-            font-weight: bold;
-        }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; }
+        video { width: 100%; max-width: 400px; border: 3px solid #333; border-radius: 8px; margin-bottom: 15px; }
+        button { padding: 12px 20px; font-size: 16px; margin: 5px; cursor: pointer; border: none; border-radius: 5px; background-color: #007bff; color: white; font-weight: bold; }
         button:hover { background-color: #0056b3; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
-        #hasil-scan {
-            width: 100%;
-            max-width: 380px;
-            height: 50px;
-            font-size: 18px;
-            margin: 15px 0;
-            padding: 10px;
-            text-align: center;
-        }
-        #status {
-            color: #d9534f;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
+        #hasil-scan { width: 100%; max-width: 380px; height: 50px; font-size: 18px; margin: 15px 0; padding: 10px; text-align: center; }
+        #status { color: #d9534f; font-weight: bold; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -56,17 +22,11 @@
 
     <video id="kamera" autoplay playsinline></video>
     <br>
-    
     <div id="status">Kamera siap.</div>
-
-    <!-- Canvas tersembunyi untuk mengambil gambar dari video -->
     <canvas id="canvas" style="display:none;"></canvas>
-
-    <button id="btn-scan">🔍 Scan Nomor</button>
-    <br>
-
-    <input type="text" id="hasil-scan" placeholder="Hasil nomor akan muncul di sini..." readonly>
-    <br>
+    
+    <button id="btn-scan">🔍 Scan Nomor</button><br>
+    <input type="text" id="hasil-scan" placeholder="Hasil nomor akan muncul di sini..." readonly><br>
     <button id="btn-copy" disabled>📋 Salin Nomor</button>
 
     <script>
@@ -78,16 +38,13 @@
         const hasilScan = document.getElementById('hasil-scan');
         const statusTeks = document.getElementById('status');
 
-        // Mengakses kamera belakang jika tersedia (cocok untuk HP)
+        // Mengakses kamera (mengatur resolusi ideal agar tidak terlalu berat)
         navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'environment' } 
-        })
-        .then(stream => {
+            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } 
+        }).then(stream => {
             video.srcObject = stream;
-        })
-        .catch(err => {
+        }).catch(err => {
             statusTeks.innerText = "Error: Kamera tidak dapat diakses.";
-            console.error(err);
         });
 
         // Proses Scanning
@@ -95,24 +52,27 @@
             statusTeks.innerText = "Sedang memindai gambar... Mohon tunggu.";
             statusTeks.style.color = "#f0ad4e";
             btnScan.disabled = true;
+            btnCopy.disabled = true;
+            hasilScan.value = "";
 
-            // Atur ukuran canvas sama dengan video
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            // PERBAIKAN: Perkecil resolusi gambar agar HP tidak macet (Maksimal lebar 600px)
+            const rasio = video.videoWidth / video.videoHeight;
+            canvas.width = 600; 
+            canvas.height = 600 / rasio;
             
-            // Gambar frame video saat ini ke canvas
+            // Gambar frame video ke canvas dengan ukuran yang sudah diperkecil
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            // Ambil gambar dalam format base64
-            const imageData = canvas.toDataURL('image/png');
+            // Ubah ke format JPEG agar lebih ringan dari PNG
+            const imageData = canvas.toDataURL('image/jpeg', 0.8); 
 
-            // Gunakan Tesseract untuk membaca teks
+            // Proses Tesseract
             Tesseract.recognize(
                 imageData,
-                'eng', // Bahasa (inggris cukup baik untuk angka)
+                'eng',
                 { logger: m => console.log(m) }
             ).then(({ data: { text } }) => {
-                // Saring hanya angka menggunakan Regex (membuang huruf dan simbol)
+                // Ambil hanya angka
                 const hanyaAngka = text.replace(/[^0-9]/g, '');
 
                 if (hanyaAngka) {
@@ -121,15 +81,12 @@
                     statusTeks.style.color = "#5cb85c";
                     btnCopy.disabled = false;
                 } else {
-                    hasilScan.value = "";
-                    statusTeks.innerText = "Tidak ada nomor yang terdeteksi. Coba lagi.";
+                    statusTeks.innerText = "Tidak ada nomor yang jelas. Coba lebih dekat atau fokus.";
                     statusTeks.style.color = "#d9534f";
-                    btnCopy.disabled = true;
                 }
                 btnScan.disabled = false;
             }).catch(err => {
-                statusTeks.innerText = "Terjadi kesalahan saat memindai.";
-                console.error(err);
+                statusTeks.innerText = "Gagal memindai. Coba muat ulang halaman.";
                 btnScan.disabled = false;
             });
         });
@@ -137,14 +94,11 @@
         // Proses Salin (Copy)
         btnCopy.addEventListener('click', () => {
             hasilScan.select();
-            hasilScan.setSelectionRange(0, 99999); // Untuk perangkat mobile
+            hasilScan.setSelectionRange(0, 99999);
             navigator.clipboard.writeText(hasilScan.value).then(() => {
                 alert("Nomor berhasil disalin: " + hasilScan.value);
-            }).catch(err => {
-                alert("Gagal menyalin nomor.");
             });
         });
     </script>
 </body>
 </html>
-
