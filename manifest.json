@@ -1,0 +1,25 @@
+{
+  "name": "MoneyFlow - Catatan Keuangan",
+  "short_name": "MoneyFlow",
+  "description": "Aplikasi pencatatan pemasukan dan pengeluaran harian",
+  "start_url": "/moneyflow/index.html",
+  "scope": "/moneyflow/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/272/272525.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/272/272525.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
