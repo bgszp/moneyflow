@@ -5,136 +5,167 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MoneyFlow</title>
     <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#2563eb">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* Sembunyikan scrollbar untuk daftar dompet tapi tetap bisa digeser */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-gray-50 pb-24">
 
-    <!-- Header & Saldo Utama -->
-    <header class="bg-blue-600 text-white p-5 rounded-b-3xl shadow-md">
-        <div class="flex justify-between items-center mb-4 max-w-md mx-auto">
-            <h1 class="text-xl font-bold"><i class="fas fa-wallet mr-2"></i>MoneyFlow</h1>
-            <!-- Filter Rentang Waktu -->
-            <select id="filter-waktu" class="bg-blue-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg border border-blue-400 focus:outline-none">
-                <option value="bulan-ini">Bulan Ini</option>
-                <option value="hari-ini">Hari Ini</option>
-                <option value="semua">Semua Waktu</option>
-            </select>
-        </div>
-
-        <div class="max-w-md mx-auto">
-            <div class="bg-white/20 p-4 rounded-xl text-center backdrop-blur-sm">
-                <p class="text-xs opacity-80 mb-1" id="label-saldo">Sisa Saldo (Bulan Ini)</p>
-                <h2 class="text-3xl font-bold" id="total-saldo">Rp 0</h2>
+    <!-- LAYAR LOGIN MULTI-USER -->
+    <div id="login-screen" class="fixed inset-0 bg-blue-600 flex items-center justify-center p-5 z-50 hidden">
+        <div class="bg-white p-6 rounded-3xl shadow-xl w-full max-w-sm text-center">
+            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fas fa-user-lock"></i>
             </div>
-            <div class="flex justify-between mt-4 text-sm">
-                <div class="text-center w-1/2 border-r border-white/20">
-                    <p class="opacity-80 text-xs">Pemasukan</p>
-                    <p class="font-bold text-green-300 mt-0.5" id="total-masuk">Rp 0</p>
-                </div>
-                <div class="text-center w-1/2">
-                    <p class="opacity-80 text-xs">Pengeluaran</p>
-                    <p class="font-bold text-red-300 mt-0.5" id="total-keluar">Rp 0</p>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <main class="p-4 max-w-md mx-auto space-y-5">
-        
-        <!-- Rincian Saldo Per Dompet (All-Time) -->
-        <div>
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Saldo Dompet Saat Ini</p>
-            <div id="list-dompet" class="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
-                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm min-w-[120px] text-center text-xs text-gray-400">
-                    Memuat...
-                </div>
-            </div>
-        </div>
-
-        <!-- Form Input Cepat -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-            <h3 class="font-bold text-gray-700 mb-4 text-sm">Catat Transaksi Baru</h3>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Selamat Datang</h2>
+            <p class="text-xs text-gray-400 mb-5">Masukkan Nama ID Anda untuk membuka catatan keuangan pribadi</p>
             
-            <form id="form-transaksi" class="space-y-4">
-                <!-- Jenis Transaksi -->
-                <div class="flex gap-2">
-                    <button type="button" id="btn-keluar" class="w-1/2 py-2 bg-red-100 text-red-600 font-bold rounded-lg border-2 border-red-500 transition text-sm">Pengeluaran</button>
-                    <button type="button" id="btn-masuk" class="w-1/2 py-2 bg-gray-100 text-gray-500 font-bold rounded-lg border-2 border-transparent transition text-sm">Pemasukan</button>
-                </div>
-                <input type="hidden" id="jenis-transaksi" value="Pengeluaran">
-
-                <!-- Nominal -->
-                <div>
-                    <label class="text-xs text-gray-500 font-semibold mb-1 block">Nominal (Rp)</label>
-                    <div class="relative">
-                        <span class="absolute left-3 top-3 text-gray-400 font-bold">Rp</span>
-                        <input type="text" inputmode="numeric" id="nominal" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 pl-10 pr-3 focus:outline-none focus:border-blue-500 text-lg font-bold text-gray-700" placeholder="0" required>
-                    </div>
+            <form id="form-login" class="space-y-4">
+                <input type="text" id="input-userid" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-center font-bold text-gray-700 focus:outline-none focus:border-blue-500 uppercase tracking-wider" placeholder="Ketik ID (cth: ARIF / BAGUS)" required>
+                
+                <!-- Tombol Pintas Profil -->
+                <div class="flex gap-2 justify-center pt-1">
+                    <button type="button" onclick="pilihUserCepat('bagus')" class="text-xs bg-gray-100 hover:bg-blue-50 text-gray-600 hover:text-blue-600 py-1.5 px-3 rounded-lg font-semibold border border-gray-200 transition">ID: Bagus</button>
+                    <button type="button" onclick="pilihUserCepat('arif')" class="text-xs bg-gray-100 hover:bg-blue-50 text-gray-600 hover:text-blue-600 py-1.5 px-3 rounded-lg font-semibold border border-gray-200 transition">ID: Arif</button>
                 </div>
 
-                <!-- Kategori & Metode/Dompet -->
-                <div class="flex gap-3">
-                    <!-- Bagian Kategori -->
-                    <div class="w-1/2">
-                        <label class="text-xs text-gray-500 font-semibold mb-1 block">Kategori</label>
-                        <select id="kategori" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:border-blue-500">
-                            <!-- Dirender via JS -->
-                        </select>
-                        <input type="text" id="kategori-manual" class="hidden w-full bg-blue-50/50 border border-blue-300 rounded-lg py-2 px-3 mt-2 focus:outline-none focus:border-blue-500 text-sm" placeholder="Nama kategori...">
-                    </div>
-
-                    <!-- Bagian Metode/Dompet -->
-                    <div class="w-1/2">
-                        <label class="text-xs text-gray-500 font-semibold mb-1 block">Dompet / Metode</label>
-                        <select id="metode" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:border-blue-500">
-                            <!-- Dirender via JS -->
-                        </select>
-                        <input type="text" id="metode-manual" class="hidden w-full bg-blue-50/50 border border-blue-300 rounded-lg py-2 px-3 mt-2 focus:outline-none focus:border-blue-500 text-sm" placeholder="Nama dompet...">
-                    </div>
-                </div>
-
-                <!-- Catatan Opsional -->
-                <div>
-                    <label class="text-xs text-gray-500 font-semibold mb-1 block">Keterangan <span class="text-gray-400 font-normal">(Opsional)</span></label>
-                    <input type="text" id="catatan" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 focus:outline-none focus:border-blue-500 text-sm" placeholder="Contoh: Beli bensin Pertamax / Bayar proyek">
-                </div>
-
-                <!-- Tombol Simpan -->
-                <button type="submit" id="btn-submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md hover:bg-blue-700 active:scale-95 transition flex justify-center items-center text-sm">
-                    <i class="fas fa-save mr-2"></i> <span>Simpan Catatan</span>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md hover:bg-blue-700 active:scale-95 transition text-sm">
+                    Masuk Aplikasi <i class="fas fa-arrow-right ml-1"></i>
                 </button>
             </form>
         </div>
+    </div>
 
-        <!-- Daftar Transaksi -->
-        <div>
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="font-bold text-gray-700 text-sm">Riwayat Transaksi</h3>
-                <span id="jumlah-transaksi" class="text-xs bg-gray-200 text-gray-600 py-0.5 px-2 rounded-full font-semibold">0 data</span>
+    <!-- KONTEN UTAMA APLIKASI -->
+    <div id="app-content" class="hidden">
+        <!-- Header & Saldo Utama -->
+        <header class="bg-blue-600 text-white p-5 rounded-b-3xl shadow-md">
+            <div class="flex justify-between items-center mb-4 max-w-md mx-auto">
+                <div>
+                    <h1 class="text-lg font-bold leading-tight"><i class="fas fa-wallet mr-1.5"></i>MoneyFlow</h1>
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                        <span class="text-[11px] bg-blue-800/60 py-0.5 px-2 rounded-md font-medium text-blue-100">
+                            <i class="fas fa-user mr-1 text-[9px]"></i><span id="display-userid" class="uppercase font-bold">-</span>
+                        </span>
+                        <button id="btn-logout" class="text-[10px] bg-white/20 hover:bg-white/30 text-white py-0.5 px-2 rounded-md transition">
+                            Ganti ID
+                        </button>
+                    </div>
+                </div>
+                <!-- Filter Rentang Waktu -->
+                <select id="filter-waktu" class="bg-blue-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg border border-blue-400 focus:outline-none">
+                    <option value="bulan-ini">Bulan Ini</option>
+                    <option value="hari-ini">Hari Ini</option>
+                    <option value="semua">Semua Waktu</option>
+                </select>
             </div>
+
+            <div class="max-w-md mx-auto">
+                <div class="bg-white/20 p-4 rounded-xl text-center backdrop-blur-sm">
+                    <p class="text-xs opacity-80 mb-1" id="label-saldo">Sisa Saldo (Bulan Ini)</p>
+                    <h2 class="text-3xl font-bold" id="total-saldo">Rp 0</h2>
+                </div>
+                <div class="flex justify-between mt-4 text-sm">
+                    <div class="text-center w-1/2 border-r border-white/20">
+                        <p class="opacity-80 text-xs">Pemasukan</p>
+                        <p class="font-bold text-green-300 mt-0.5" id="total-masuk">Rp 0</p>
+                    </div>
+                    <div class="text-center w-1/2">
+                        <p class="opacity-80 text-xs">Pengeluaran</p>
+                        <p class="font-bold text-red-300 mt-0.5" id="total-keluar">Rp 0</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 max-w-md mx-auto space-y-5">
             
-            <div id="list-transaksi" class="space-y-2.5">
-                <div class="text-center text-sm text-gray-400 py-6">Memuat data...</div>
+            <!-- Rincian Saldo Per Dompet (All-Time) -->
+            <div>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Saldo Dompet Saat Ini</p>
+                <div id="list-dompet" class="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+                    <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm min-w-[120px] text-center text-xs text-gray-400">
+                        Memuat...
+                    </div>
+                </div>
             </div>
-            
-            <!-- Tombol Hapus Database -->
-            <div class="mt-8 pt-4 border-t border-gray-200 flex justify-center gap-3">
-                <button type="button" id="btn-reset-opsi" class="text-xs text-gray-500 hover:text-gray-700 border border-gray-200 bg-white py-2 px-3 rounded-lg transition">
-                    <i class="fas fa-undo mr-1"></i> Reset Opsi Dropdown
-                </button>
-                <button type="button" id="btn-clear-db" class="text-xs text-red-500 hover:text-red-700 border border-red-200 bg-red-50 py-2 px-3 rounded-lg transition">
-                    <i class="fas fa-trash-alt mr-1"></i> Hapus Semua Database
-                </button>
+
+            <!-- Form Input Cepat -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-gray-700 mb-4 text-sm">Catat Transaksi Baru</h3>
+                
+                <form id="form-transaksi" class="space-y-4">
+                    <!-- Jenis Transaksi -->
+                    <div class="flex gap-2">
+                        <button type="button" id="btn-keluar" class="w-1/2 py-2 bg-red-100 text-red-600 font-bold rounded-lg border-2 border-red-500 transition text-sm">Pengeluaran</button>
+                        <button type="button" id="btn-masuk" class="w-1/2 py-2 bg-gray-100 text-gray-500 font-bold rounded-lg border-2 border-transparent transition text-sm">Pemasukan</button>
+                    </div>
+                    <input type="hidden" id="jenis-transaksi" value="Pengeluaran">
+
+                    <!-- Nominal -->
+                    <div>
+                        <label class="text-xs text-gray-500 font-semibold mb-1 block">Nominal (Rp)</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-3 text-gray-400 font-bold">Rp</span>
+                            <input type="text" inputmode="numeric" id="nominal" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 pl-10 pr-3 focus:outline-none focus:border-blue-500 text-lg font-bold text-gray-700" placeholder="0" required>
+                        </div>
+                    </div>
+
+                    <!-- Kategori & Metode/Dompet -->
+                    <div class="flex gap-3">
+                        <div class="w-1/2">
+                            <label class="text-xs text-gray-500 font-semibold mb-1 block">Kategori</label>
+                            <select id="kategori" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:border-blue-500"></select>
+                            <input type="text" id="kategori-manual" class="hidden w-full bg-blue-50/50 border border-blue-300 rounded-lg py-2 px-3 mt-2 focus:outline-none focus:border-blue-500 text-sm" placeholder="Nama kategori...">
+                        </div>
+
+                        <div class="w-1/2">
+                            <label class="text-xs text-gray-500 font-semibold mb-1 block">Dompet / Metode</label>
+                            <select id="metode" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:border-blue-500"></select>
+                            <input type="text" id="metode-manual" class="hidden w-full bg-blue-50/50 border border-blue-300 rounded-lg py-2 px-3 mt-2 focus:outline-none focus:border-blue-500 text-sm" placeholder="Nama dompet...">
+                        </div>
+                    </div>
+
+                    <!-- Catatan Opsional -->
+                    <div>
+                        <label class="text-xs text-gray-500 font-semibold mb-1 block">Keterangan <span class="text-gray-400 font-normal">(Opsional)</span></label>
+                        <input type="text" id="catatan" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 focus:outline-none focus:border-blue-500 text-sm" placeholder="Contoh: Beli bensin / Bayar proyek">
+                    </div>
+
+                    <!-- Tombol Simpan -->
+                    <button type="submit" id="btn-submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md hover:bg-blue-700 active:scale-95 transition flex justify-center items-center text-sm">
+                        <i class="fas fa-save mr-2"></i> <span>Simpan Catatan</span>
+                    </button>
+                </form>
             </div>
-        </div>
-    </main>
+
+            <!-- Daftar Transaksi -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-gray-700 text-sm">Riwayat Transaksi</h3>
+                    <span id="jumlah-transaksi" class="text-xs bg-gray-200 text-gray-600 py-0.5 px-2 rounded-full font-semibold">0 data</span>
+                </div>
+                
+                <div id="list-transaksi" class="space-y-2.5">
+                    <div class="text-center text-sm text-gray-400 py-6">Memuat data...</div>
+                </div>
+                
+                <!-- Tombol Pengaturan Bawah -->
+                <div class="mt-8 pt-4 border-t border-gray-200 flex justify-center gap-3">
+                    <button type="button" id="btn-reset-opsi" class="text-xs text-gray-500 hover:text-gray-700 border border-gray-200 bg-white py-2 px-3 rounded-lg transition">
+                        <i class="fas fa-undo mr-1"></i> Reset Opsi Dropdown
+                    </button>
+                    <button type="button" id="btn-clear-db" class="text-xs text-red-500 hover:text-red-700 border border-red-200 bg-red-50 py-2 px-3 rounded-lg transition">
+                        <i class="fas fa-trash-alt mr-1"></i> Hapus Data Saya
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <!-- Integrasi Firebase SDK -->
     <script type="module">
@@ -153,9 +184,18 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const transactionsRef = collection(db, "transactions");
+
+        // State Pengguna & Database
+        let currentUser = localStorage.getItem('mf_active_user') || null;
+        let unsubscribeFirestore = null;
+        let allTransactions = [];
 
         // UI Elements
+        const loginScreen = document.getElementById('login-screen');
+        const appContent = document.getElementById('app-content');
+        const inputUserId = document.getElementById('input-userid');
+        const displayUserId = document.getElementById('display-userid');
+        
         const btnKeluar = document.getElementById('btn-keluar');
         const btnMasuk = document.getElementById('btn-masuk');
         const inputJenis = document.getElementById('jenis-transaksi');
@@ -167,16 +207,71 @@
         const catatanInput = document.getElementById('catatan');
         const filterWaktu = document.getElementById('filter-waktu');
         
-        // Data Default & LocalStorage untuk Custom Kategori/Dompet
+        // Data Default Kategori & Dompet
         const defaultKeluar = ['Makan', 'Bensin', 'Nongkrong', 'Jajan', 'Parkir', 'Lainnya'];
         const defaultMasuk = ['Gaji', 'Freelance', 'Bonus', 'Lainnya'];
         const defaultMetode = ['Cash', 'BCA', 'Mandiri', 'Gopay', 'Dana', 'ShopeePay'];
 
-        let catPengeluaran = JSON.parse(localStorage.getItem('mf_cat_keluar')) || defaultKeluar;
-        let catPemasukan = JSON.parse(localStorage.getItem('mf_cat_masuk')) || defaultMasuk;
-        let listMetode = JSON.parse(localStorage.getItem('mf_metode')) || defaultMetode;
+        let catPengeluaran = [];
+        let catPemasukan = [];
+        let listMetode = [];
 
-        let allTransactions = []; // Menyimpan cache data Firestore untuk difilter
+        // Helper Nama Koleksi Firebase per User
+        const getCollectionName = () => `transactions_${currentUser}`;
+
+        // Fungsi Pilih Cepat di Layar Login
+        window.pilihUserCepat = (nama) => {
+            inputUserId.value = nama;
+        };
+
+        // Fungsi Memuat Opsi Dropdown Sesuai User
+        function loadUserPreferences() {
+            catPengeluaran = JSON.parse(localStorage.getItem(`mf_cat_keluar_${currentUser}`)) || [...defaultKeluar];
+            catPemasukan = JSON.parse(localStorage.getItem(`mf_cat_masuk_${currentUser}`)) || [...defaultMasuk];
+            listMetode = JSON.parse(localStorage.getItem(`mf_metode_${currentUser}`)) || [...defaultMetode];
+            setTab('Pengeluaran');
+            renderMetode();
+        }
+
+        // Fungsi Inisialisasi Sesi User
+        function checkAuth() {
+            if (!currentUser) {
+                loginScreen.classList.remove('hidden');
+                appContent.classList.add('hidden');
+                if (unsubscribeFirestore) unsubscribeFirestore();
+            } else {
+                loginScreen.classList.add('hidden');
+                appContent.classList.remove('hidden');
+                displayUserId.innerText = currentUser;
+                loadUserPreferences();
+                startFirestoreListener();
+            }
+        }
+
+        // Event Login
+        document.getElementById('form-login').addEventListener('submit', (e) => {
+            e.preventDefault();
+            // Bersihkan spasi dan jadikan huruf kecil semua agar konsisten
+            const rawId = inputUserId.value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (rawId) {
+                currentUser = rawId;
+                localStorage.setItem('mf_active_user', currentUser);
+                inputUserId.value = '';
+                checkAuth();
+            } else {
+                alert("Masukkan ID yang valid (huruf/angka).");
+            }
+        });
+
+        // Event Logout / Ganti ID
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            if (confirm(`Keluar dari akun "${currentUser.toUpperCase()}" dan ganti ID?`)) {
+                currentUser = null;
+                localStorage.removeItem('mf_active_user');
+                allTransactions = [];
+                checkAuth();
+            }
+        });
 
         // Format Input Angka (Pemisah Titik)
         nominalInput.addEventListener('input', function() {
@@ -184,7 +279,7 @@
             this.value = val ? parseInt(val, 10).toLocaleString('id-ID') : '';
         });
 
-        // Toggle Input Manual Kategori
+        // Toggle Input Manual Kategori & Metode
         selectKategori.addEventListener('change', function() {
             if(this.value === 'manual') {
                 inputKategoriManual.classList.remove('hidden');
@@ -197,7 +292,6 @@
             }
         });
 
-        // Toggle Input Manual Metode/Dompet
         selectMetode.addEventListener('change', function() {
             if(this.value === 'manual') {
                 inputMetodeManual.classList.remove('hidden');
@@ -245,12 +339,7 @@
 
         btnKeluar.addEventListener('click', () => setTab('Pengeluaran'));
         btnMasuk.addEventListener('click', () => setTab('Pemasukan'));
-        
-        // Inisialisasi awal
-        setTab('Pengeluaran');
-        renderMetode();
 
-        // Helper Format Rupiah & Tanggal
         const formatRp = (angka) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
         
         const formatTanggal = (timestamp) => {
@@ -259,9 +348,11 @@
             return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
         };
 
-        // Submit Data ke Firestore
+        // Submit Data ke Koleksi Firestore User Aktif
         document.getElementById('form-transaksi').addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (!currentUser) return;
+
             const btnSubmit = document.getElementById('btn-submit');
             btnSubmit.disabled = true;
             btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Menyimpan...';
@@ -270,31 +361,31 @@
             const nominalVal = Number(nominalClean);
             const jenisAktif = inputJenis.value;
             
-            // Handle Kategori Manual & Simpan ke LocalStorage
+            // Handle Kategori Manual per User
             let kategoriFinal = selectKategori.value;
             if(kategoriFinal === 'manual') {
                 kategoriFinal = inputKategoriManual.value.trim();
                 if(kategoriFinal) {
                     if(jenisAktif === 'Pengeluaran' && !catPengeluaran.includes(kategoriFinal)) {
                         catPengeluaran.push(kategoriFinal);
-                        localStorage.setItem('mf_cat_keluar', JSON.stringify(catPengeluaran));
+                        localStorage.setItem(`mf_cat_keluar_${currentUser}`, JSON.stringify(catPengeluaran));
                     } else if(jenisAktif === 'Pemasukan' && !catPemasukan.includes(kategoriFinal)) {
                         catPemasukan.push(kategoriFinal);
-                        localStorage.setItem('mf_cat_masuk', JSON.stringify(catPemasukan));
+                        localStorage.setItem(`mf_cat_masuk_${currentUser}`, JSON.stringify(catPemasukan));
                     }
                     renderKategori(jenisAktif);
                     selectKategori.value = kategoriFinal;
                 }
             }
 
-            // Handle Metode/Dompet Manual & Simpan ke LocalStorage
+            // Handle Metode/Dompet Manual per User
             let metodeFinal = selectMetode.value;
             if(metodeFinal === 'manual') {
                 metodeFinal = inputMetodeManual.value.trim();
                 if(metodeFinal) {
                     if(!listMetode.includes(metodeFinal)) {
                         listMetode.push(metodeFinal);
-                        localStorage.setItem('mf_metode', JSON.stringify(listMetode));
+                        localStorage.setItem(`mf_metode_${currentUser}`, JSON.stringify(listMetode));
                     }
                     renderMetode();
                     selectMetode.value = metodeFinal;
@@ -302,7 +393,8 @@
             }
             
             try {
-                await addDoc(transactionsRef, {
+                const userCollectionRef = collection(db, getCollectionName());
+                await addDoc(userCollectionRef, {
                     jenis: jenisAktif,
                     nominal: nominalVal,
                     kategori: kategoriFinal || 'Lainnya',
@@ -328,7 +420,6 @@
             const filterVal = filterWaktu.value;
             const now = new Date();
 
-            // Update Label Header
             const labelMap = {
                 'bulan-ini': 'Sisa Saldo (Bulan Ini)',
                 'hari-ini': 'Sisa Saldo (Hari Ini)',
@@ -338,17 +429,15 @@
 
             let totalMasuk = 0;
             let totalKeluar = 0;
-            let saldoDompet = {}; // Hitung saldo all-time per dompet
+            let saldoDompet = {};
             let filteredDocs = [];
 
             allTransactions.forEach((item) => {
-                // 1. Hitung Saldo Per Dompet (Selalu Semua Waktu agar akurat dengan isi dompet asli)
                 const dompet = item.metode || 'Cash';
                 if (!saldoDompet[dompet]) saldoDompet[dompet] = 0;
                 if (item.jenis === 'Pemasukan') saldoDompet[dompet] += item.nominal;
                 else saldoDompet[dompet] -= item.nominal;
 
-                // 2. Cek apakah masuk dalam rentang filter waktu yang dipilih
                 let includeInFilter = true;
                 if (item.timestamp) {
                     const txDate = item.timestamp.toDate();
@@ -427,64 +516,65 @@
             }).join('');
         }
 
-        // Event saat dropdown filter waktu diubah
         filterWaktu.addEventListener('change', updateUI);
 
-        // Fungsi Hapus Satu Item Transaksi
+        // Hapus Satu Item Transaksi Milik User Aktif
         window.hapusItem = async (id) => {
             if(confirm("Hapus catatan transaksi ini?")) {
                 try {
-                    await deleteDoc(doc(db, "transactions", id));
+                    await deleteDoc(doc(db, getCollectionName(), id));
                 } catch (err) {
                     alert("Gagal menghapus item.");
                 }
             }
         };
 
-        // Real-time Listener Firestore
-        const q = query(transactionsRef, orderBy("timestamp", "desc"));
-        onSnapshot(q, (snapshot) => {
-            allTransactions = [];
-            snapshot.forEach((docSnap) => {
-                allTransactions.push({ id: docSnap.id, ...docSnap.data() });
+        // Real-time Listener Firestore Berdasarkan User Aktif
+        function startFirestoreListener() {
+            if (unsubscribeFirestore) unsubscribeFirestore();
+            const userCollectionRef = collection(db, getCollectionName());
+            const q = query(userCollectionRef, orderBy("timestamp", "desc"));
+            
+            unsubscribeFirestore = onSnapshot(q, (snapshot) => {
+                allTransactions = [];
+                snapshot.forEach((docSnap) => {
+                    allTransactions.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                updateUI();
             });
-            updateUI();
-        });
+        }
 
-        // Reset Opsi Dropdown ke Default
+        // Reset Opsi Dropdown Milik User Aktif
         document.getElementById('btn-reset-opsi').addEventListener('click', () => {
-            if(confirm("Kembalikan pilihan Kategori dan Dompet ke pengaturan awal?")) {
-                localStorage.removeItem('mf_cat_keluar');
-                localStorage.removeItem('mf_cat_masuk');
-                localStorage.removeItem('mf_metode');
-                catPengeluaran = [...defaultKeluar];
-                catPemasukan = [...defaultMasuk];
-                listMetode = [...defaultMetode];
-                renderKategori(inputJenis.value);
-                renderMetode();
+            if(confirm(`Kembalikan pilihan Kategori dan Dompet untuk ID "${currentUser.toUpperCase()}" ke pengaturan awal?`)) {
+                localStorage.removeItem(`mf_cat_keluar_${currentUser}`);
+                localStorage.removeItem(`mf_cat_masuk_${currentUser}`);
+                localStorage.removeItem(`mf_metode_${currentUser}`);
+                loadUserPreferences();
                 alert("Opsi dropdown berhasil direset!");
             }
         });
 
-        // Hapus Seluruh Database dengan Password
+        // Hapus Seluruh Database Milik User Aktif dengan Password
         document.getElementById('btn-clear-db').addEventListener('click', async () => {
-            const pass = prompt("Masukkan password untuk menghapus seluruh database:");
+            const pass = prompt(`Masukkan password untuk menghapus seluruh data milik ID "${currentUser.toUpperCase()}":`);
             if(pass === "1111") {
-                if(confirm("Yakin ingin menghapus SEMUA histori transaksi di cloud? Tindakan ini tidak bisa dibatalkan.")) {
+                if(confirm(`Yakin ingin menghapus SEMUA histori transaksi milik "${currentUser.toUpperCase()}"? Data pengguna lain tidak akan ikut terhapus.`)) {
                     try {
                         const btnClear = document.getElementById('btn-clear-db');
                         btnClear.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menghapus...';
                         btnClear.disabled = true;
 
-                        const querySnapshot = await getDocs(transactionsRef);
+                        const userCollectionRef = collection(db, getCollectionName());
+                        const querySnapshot = await getDocs(userCollectionRef);
                         const deletePromises = [];
                         querySnapshot.forEach((docSnap) => {
                             deletePromises.push(deleteDoc(docSnap.ref));
                         });
                         await Promise.all(deletePromises);
 
-                        alert("Database berhasil dikosongkan.");
-                        btnClear.innerHTML = '<i class="fas fa-trash-alt mr-1"></i> Hapus Semua Database';
+                        alert(`Database milik ${currentUser.toUpperCase()} berhasil dikosongkan.`);
+                        btnClear.innerHTML = '<i class="fas fa-trash-alt mr-1"></i> Hapus Data Saya';
                         btnClear.disabled = false;
                     } catch (error) {
                         console.error("Error menghapus database: ", error);
@@ -495,12 +585,14 @@
                 alert("Password salah!");
             }
         });
+
+        // Jalankan pengecekan login saat aplikasi dibuka
+        checkAuth();
     </script>
     <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-  }
-</script>
-
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
 </body>
 </html>
